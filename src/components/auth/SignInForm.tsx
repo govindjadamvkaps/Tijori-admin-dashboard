@@ -15,6 +15,7 @@ import { useAppDispatch } from "@/lib/hooks";
 import Cookies from "js-cookie";
 import { LoginResponseDetails } from "@/interfaces/loginInterface";
 import { useRouter } from "next/navigation";
+import { fetchUserProfile } from "@/lib/features/user/userSlice";
 
 // Define Form Data Type
 interface SignInFormData {
@@ -48,14 +49,14 @@ export default function SignInForm() {
 
   try {
     const response: Response = await dispatch(login(data) as never);
-    console.log("login page response", response);
 
     // ✅ Success case
     if (response.payload?.data?.access_token) {
       Cookies.set("access_token", response.payload.data.access_token, { expires: 7 });
       Cookies.set("refresh_token", response.payload.data.refresh_token);
-
       toast.success("Login Successful!", { id: toastId });
+
+      await dispatch(fetchUserProfile()); // fetch user profile after login
       router.push("/");
       reset();
     } 

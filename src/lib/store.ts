@@ -10,7 +10,7 @@ import {
   REGISTER,
 } from "redux-persist";
 import authReducer from "./features/auth/authSlice";
-// import propertyReducer from "./features/property/NewPropertySlice";
+import userReducer from "./features/user/userSlice";
 // import subjectReducer from './features/subject/subjectSlice'
 // import curriculumReducer from './features/curriculum/curriculumSlice'
 // import lessonPlanReduce from './features/lessonPlan/lessonPlanSlice'
@@ -19,11 +19,12 @@ import storage from "./storage";
 const persistConfig = {
   key: "tijori-admin-dashboard",
   storage,
-  whitelist: ["auth"],
+  whitelist: ["auth", "user"], // only auth and user will be persisted
 };
 
 const rootReducer = combineReducers({
    auth: authReducer,
+   user: userReducer,
 });
     
 const makeConfiguredStore = () =>

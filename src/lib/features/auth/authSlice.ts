@@ -1,28 +1,31 @@
-import { createAsyncThunk, createSlice} from "@reduxjs/toolkit";
+// src/lib/features/auth/authSlice.ts
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { apiRequest } from "../../axiosInstance";
 import axios, { AxiosError } from "axios";
+import { User } from "@/interfaces/loginInterface";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface AuthState {
-    user: null;
-    error: null | string;
-    loading: boolean;
-    access_token: null;
-    refresh_token?: null | string;
+  user: User | null;
+  error: string | null;
+  loading: boolean;
+  access_token: string | null;
+  refresh_token: string | null;
 }
 
 export interface LoginCredentials {
-    email: string;
-    password: string;
-  }
+  email: string;
+  password: string;
+}
 
 const initialState: AuthState = {
   user: null,
-  error: null, 
+  error: null,
   loading: false,
   access_token: null,
   refresh_token: null,
-}
+};
 
 export const login = createAsyncThunk('auth/login', async(credentials: LoginCredentials, {rejectWithValue}) => {
     try {
@@ -41,49 +44,73 @@ export const login = createAsyncThunk('auth/login', async(credentials: LoginCred
         }
 })
 
-export const logoutAdmin = createAsyncThunk('auth/logout', async() => {
-   try {
-    const response = await axios.post(`${API_URL}/users/logout`)
-   } catch (error) {
-    if (error instanceof AxiosError) {
-        console.log("Logout error:", error.response?.data?.message || "Something went wrong during logout");
+export const logoutAdmin = createAsyncThunk(
+  "auth/logoutAdmin",
+  async (_, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await apiRequest({
+        method: "post",
+        url: "/users/logout",
+      });
+
+      // Optional: backend already invalidated token → we clear anyway
+      dispatch(logout()); // clear redux
+      return response;
+    } catch (error: unknown) {
+      // 401 will be caught by interceptor → no need to handle here again
+      if (error instanceof AxiosError) {
+        if (error.response?.status === 401) {
+          return;
+        }
+        return rejectWithValue(error.message || "Logout failed");
       }
-      return 
-   }
-})
+    }
+  }
+);
 
 const authSlice = createSlice({
-    name: 'auth',
-    initialState,
-    reducers: {
-        testActions: () => {
-         console.log('test')
-        },
-        logout: (state) => {
-            state.access_token = null
-            state.refresh_token = null
-            state.user = null
-        }
+  name: "auth",
+  initialState,
+  reducers: {
+    logout: (state) => {
+      state.user = null;
+      state.access_token = null;
+      state.refresh_token = null;
+      state.error = null;
     },
-    extraReducers: (builder) => {
-        builder
-        .addCase(login.pending, (state) => {
-            state.loading = true
-        })
-        .addCase(login.fulfilled, (state, action) => {
-            console.log("action.payload", action.payload)
-            state.user = action.payload.data.user
-            state.access_token = action.payload.data.access_token
-            state.refresh_token = action.payload.data.refresh_token
-            state.loading = false
-            state.error=null
-        })
-        .addCase(login.rejected, (state, action) => {
-            state.loading = false
-            state.error = action.payload as string
-        })
-    }
-})
+  },
+  extraReducers: (builder) => {
+    // login cases...
+    builder
+      .addCase(login.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(login.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.data.user;
+        state.access_token = action.payload.data.access_token;
+        state.refresh_token = action.payload.data.refresh_token;
+      })
+      .addCase(login.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
-export const { testActions, logout } = authSlice.actions;
+      // logoutAdmin (manual logout)
+      .addCase(logoutAdmin.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(logoutAdmin.fulfilled, (state) => {
+        state.loading = false;
+        // already cleared by reducer in dispatch(logout())
+      })
+      .addCase(logoutAdmin.rejected, (state) => {
+        state.loading = false;
+        // 401 already handled by interceptor
+      });
+  },
+});
+
+export const { logout } = authSlice.actions;
 export default authSlice.reducer;
