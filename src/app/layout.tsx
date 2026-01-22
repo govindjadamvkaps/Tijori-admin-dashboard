@@ -1,8 +1,10 @@
+// app/layout.tsx
 import { Outfit } from 'next/font/google';
 import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import AuthGuard from '@/components/AuthGaurd';
 import StoreProvider from './StoreProvider';
+import { QueryProvider } from '@/lib/react-query/QueryProvider';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 
@@ -20,12 +22,14 @@ export default function RootLayout({
       <body className={`${outfit.className} dark:bg-gray-900`}>
         <ThemeProvider>
           <StoreProvider>
-            <SidebarProvider>
-              <AuthGuard>
-                {children}
-              </AuthGuard>
-               <Toaster />
-            </SidebarProvider>
+            <QueryProvider>
+              <SidebarProvider>
+                <AuthGuard>
+                  {children}
+                </AuthGuard>
+                <Toaster position="top-right" />
+              </SidebarProvider>
+            </QueryProvider>
           </StoreProvider>
         </ThemeProvider>
       </body>
