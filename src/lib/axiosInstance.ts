@@ -73,9 +73,9 @@ axiosInstance.interceptors.response.use(
         }
 
         // Redirect (only in browser)
-        // if (typeof window !== "undefined") {
-        //   window.location.href = "/signin";
-        // }
+        if (typeof window !== "undefined") {
+          window.location.href = "/signin";
+        }
 
         return Promise.reject(error);
       } finally {
